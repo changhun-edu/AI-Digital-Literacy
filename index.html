@@ -110,16 +110,22 @@ ul{margin:8px 0 0 18px;padding:0}li{margin:5px 0}
 .compCard span{font-size:12px;color:var(--muted)}
 
 /* ── 단계별 진단 ── */
-.stepNav{display:flex;align-items:center;justify-content:space-between;margin:18px 0 0;gap:12px}
+.stepNav{display:flex;align-items:center;justify-content:space-between;margin:18px 0 0;gap:12px;padding-bottom:20px;border-bottom:1px solid var(--line)}
 .stepDots{display:flex;gap:6px;flex:1;justify-content:center}
 .stepDot{width:28px;height:8px;border-radius:999px;background:var(--line);transition:.2s}
 .stepDot.done{background:var(--green)}.stepDot.active{background:var(--navy);width:40px}
-.domainStep{display:none}.domainStep.active{display:block}
-.domainBadge{display:inline-flex;align-items:center;gap:8px;margin-bottom:10px}
-.tag{min-width:42px;border-radius:14px;padding:7px 9px;color:#fff;font-weight:900;text-align:center;font-size:15px}
+.domainStep{display:none}
+.domainStep.active{display:block;padding-top:24px}
+/* ── 역량 헤더 카드 ── */
+.domainHeader{background:linear-gradient(135deg,#f8fafc,#eef6ff);border:1px solid var(--line);border-radius:18px;padding:16px 18px;margin-bottom:16px}
+.domainBadge{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.domainBadge .tag{flex-shrink:0}
+.domainBadge .domainName{font-size:19px;font-weight:900;color:var(--ink);letter-spacing:-.03em}
+.domainCoreValue{font-size:13px;color:var(--muted);margin-top:2px}
+.domainDesc{font-size:15px;color:var(--muted);line-height:1.6;margin-top:8px;padding-top:10px;border-top:1px solid var(--line)}
+.tag{min-width:42px;border-radius:14px;padding:7px 10px;color:#fff;font-weight:900;text-align:center;font-size:15px;flex-shrink:0}
 .A{background:#2563eb}.B{background:#7c3aed}.C{background:#f59e0b}.D{background:#fb923c}
 .E{background:#ea580c}.F{background:#ca8a04}.G{background:#16a34a}
-.domainCoreValue{display:inline-flex;align-items:center;gap:5px;font-size:13px;color:var(--muted);margin-left:6px;vertical-align:middle}
 
 /* ── 하단 네비게이션 ── */
 .bottomNav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:28px;padding-top:20px;border-top:2px solid var(--line)}
@@ -831,12 +837,15 @@ function renderSurvey(){
     const d=domains[k];
     const cv=coreValues.find(c=>c.keys.includes(k));
     let html=`<div class="domainStep${si===currentStep?' active':''}" id="step_${si}">`;
-    html+=`<div class="domainBadge">
-      <span class="tag ${d.cls}">${k}</span>
-      <b>${d.emoji} ${d.user}</b>
-      <span class="domainCoreValue">핵심가치 ${cv.num} · ${cv.title}</span>
+    // ★ 역량 헤더 카드
+    html+=`<div class="domainHeader">
+      <div class="domainBadge">
+        <span class="tag ${d.cls}">${k}</span>
+        <span class="domainName">${d.emoji} ${d.user}</span>
+      </div>
+      <div class="domainCoreValue">핵심가치 ${cv.num} · ${cv.title}</div>
+      <div class="domainDesc">${d.desc}</div>
     </div>`;
-    html+=`<p class="small muted" style="margin:0 0 10px">${d.desc}</p>`;
     // ★② 핵심 질문 박스
     if(coreQuestions[k]){
       html+=`<div class="coreQ">${coreQuestions[k]}</div>`;
