@@ -1096,10 +1096,10 @@ function restoreProgress(){
 
 /* ════ 계산/결과 ════ */
 function stageByScore(s){
-  if(s<2.4)return{name:'준비 단계',idx:0,cls:'stage0',next:'이해',label:'출발점 확인',range:'~2.3점'};
-  if(s<3.2)return{name:'이해 단계',idx:0,cls:'stage1',next:'활용',label:'개념과 필요성 다지는 중',range:'2.4~3.1점'};
-  if(s<4.2)return{name:'활용 단계',idx:1,cls:'stage2',next:'성찰',label:'수업에 적용하는 중',range:'3.2~4.1점'};
-  return{name:'성찰 단계',idx:2,cls:'stage3',next:'확산',label:'분석·개선으로 연결하는 중',range:'4.2~5.0점'};
+  if(s<2.4)return{name:'준비 단계',idx:0,cls:'stage0',next:'이해',label:'출발점 확인',range:'2.4점 미만'};
+  if(s<3.2)return{name:'이해 단계',idx:0,cls:'stage1',next:'활용',label:'개념과 필요성 다지는 중',range:'2.4~3.2점 미만'};
+  if(s<4.2)return{name:'활용 단계',idx:1,cls:'stage2',next:'성찰',label:'수업에 적용하는 중',range:'3.2~4.2점 미만'};
+  return{name:'성찰 단계',idx:2,cls:'stage3',next:'확산',label:'분석·개선으로 연결하는 중',range:'4.2점 이상'};
 }
 function buildResult(a){
   const scores={};domainKeys.forEach(k=>scores[k]=[]);
@@ -1164,8 +1164,8 @@ function radarHTML(avg){
     <div class="radarBox"><canvas id="radarChart" width="620" height="520" aria-label="7개 핵심 역량 방사형 차트"></canvas></div>
     <div class="radarLegend">
       <div class="stageBadgeRow">
-        <span class="pill stage0">준비 ~2.3점</span><span class="pill stage1">이해 2.4~3.1점</span>
-        <span class="pill stage2">활용 3.2~4.1점</span><span class="pill stage3">성찰 4.2~5점</span>
+        <span class="pill stage0">준비 2.4점 미만</span><span class="pill stage1">이해 2.4~3.2점 미만</span>
+        <span class="pill stage2">활용 3.2~4.2점 미만</span><span class="pill stage3">성찰 4.2점 이상</span>
       </div>
       ${domainKeys.map(k=>{const st=stageByScore(avg[k]);return`
         <div class="radarItem"><b>${domains[k].emoji} ${domains[k].user}</b><strong>${avg[k].toFixed(1)}점</strong><span class="pill ${st.cls}">${st.name}</span></div>`}).join('')}
@@ -1302,8 +1302,8 @@ function detailHTML(r,k){
       <p><b>역량 의미</b><br>${d.desc}</p>
       <p><b>현재 해석</b> (${st.range})<br>${d.stages[st.idx]}</p>
       <div class="stageBadgeRow">
-        <span class="pill stage0">준비 ~2.3점</span><span class="pill stage1">이해 2.4~3.1점</span>
-        <span class="pill stage2">활용 3.2~4.1점</span><span class="pill stage3">성찰 4.2~5점</span>
+        <span class="pill stage0">준비 2.4점 미만</span><span class="pill stage1">이해 2.4~3.2점 미만</span>
+        <span class="pill stage2">활용 3.2~4.2점 미만</span><span class="pill stage3">성찰 4.2점 이상</span>
       </div>
       <p style="margin-top:14px"><b>행동지표 세부 내용</b></p>
       ${indDetailHTML}
