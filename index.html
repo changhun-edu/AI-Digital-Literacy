@@ -1117,7 +1117,11 @@ function calculate(){
   localStorage.setItem(STORAGE_RESULT,JSON.stringify({...r,savedAt:new Date().toISOString()}));
   renderResult(r);setStatus('성장 리포트 저장됨');
 }
-function renderSavedResult(){const r=load(STORAGE_RESULT);if(r)renderResult(r)}
+function renderSavedResult(){
+  const r=load(STORAGE_RESULT);
+  if(!r){alert('저장된 결과가 없습니다.');return;}
+  renderResult(r);
+}
 function teacherType(avg){return typeRules.find(t=>t.cond(avg))||{name:'균형 성장형',desc:'전체 역량을 고르게 다져가는 유형입니다. 가장 낮은 영역 하나를 정해 작게 실천하면 좋습니다.'}}
 function weakSub(r,k){return r.subs[k].slice().sort((a,b)=>a[1]-b[1])[0]}
 function effect(k){return{A:'AI 활용이 수업 목표와 학생 성장에 맞는지 더 분명하게 판단할 수 있습니다.',B:'학생 데이터와 AI 생성물을 더 안전하고 책임 있게 다룰 수 있습니다.',C:'학생의 이해도와 지원 필요 지점을 더 빨리 파악할 수 있습니다.',D:'수업 활동, 평가, 도구 선택이 더 자연스럽게 연결됩니다.',E:'모든 학생의 생각을 수업 안으로 끌어내고 참여를 높일 수 있습니다.',F:'평가가 끝이 아니라 피드백과 다음 수업 개선으로 이어집니다.',G:'혼자 시도하고 끝내지 않고 지속 가능한 성장 루틴을 만들 수 있습니다.'}[k]}
@@ -1324,9 +1328,16 @@ function resetForm(){
   const input=prompt('정말 초기화하려면 아래에 "초기화"라고 입력하세요.');
   if(input!=='초기화')return;
   document.getElementById('survey').reset();
+  // 진행 + 결과 + 미션 모두 삭제
   localStorage.removeItem(STORAGE_PROGRESS);
+  localStorage.removeItem(STORAGE_RESULT);
+  localStorage.removeItem(STORAGE_MISSION);
   currentStep=0;renderSurvey();updateProgress(false);
-  document.getElementById('result').style.display='none';setStatus('초기화됨');
+  document.getElementById('result').style.display='none';
+  // 히어로 배너 숨기기
+  const box=document.getElementById('heroResumeBox');
+  if(box)box.style.display='none';
+  setStatus('초기화됨');
 }
 /* ── PDF 저장 ── */
 function savePDF(){
@@ -1340,7 +1351,18 @@ function savePDF(){
   },800);
 }
 
-function clearResultOnly(){if(confirm('저장된 최근 결과를 삭제할까요?')){localStorage.removeItem(STORAGE_RESULT);setStatus('최근 결과 삭제됨')}}
+function clearResultOnly(){
+  if(confirm('저장된 최근 결과를 삭제할까요?')){
+    localStorage.removeItem(STORAGE_RESULT);
+    const box=document.getElementById('heroResumeBox');
+    // 진행중인 응답도 없으면 배너 완전히 숨기기
+    const p=load(STORAGE_PROGRESS);
+    if(!p||!Object.keys(p.answers||{}).length){
+      if(box)box.style.display='none';
+    }
+    setStatus('최근 결과 삭제됨');
+  }
+}
 
 /* ════ 초기 실행 ════ */
 window.addEventListener('beforeunload',e=>{
@@ -1350,7 +1372,6 @@ window.addEventListener('beforeunload',e=>{
 });
 if('scrollRestoration' in history)history.scrollRestoration='manual';
 renderIntro();
-renderSurvey();
 showHeroResume();
 const savedProgress=load(STORAGE_PROGRESS);
 if(savedProgress&&savedProgress.answers){
@@ -1358,6 +1379,8 @@ if(savedProgress&&savedProgress.answers){
   renderSurvey();applyAnswers(savedProgress.answers);
   checkDomainComplete();
   setStatus('이전 응답 불러옴');
+} else {
+  renderSurvey();
 }
 window.addEventListener('load',()=>window.scrollTo(0,0));
 </script>
