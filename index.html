@@ -121,6 +121,19 @@ ul{margin:8px 0 0 18px;padding:0}li{margin:5px 0}
 .E{background:#ea580c}.F{background:#ca8a04}.G{background:#16a34a}
 .domainCoreValue{display:inline-flex;align-items:center;gap:5px;font-size:13px;color:var(--muted);margin-left:6px;vertical-align:middle}
 
+/* ── 하단 네비게이션 ── */
+.bottomNav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:28px;padding-top:20px;border-top:2px solid var(--line)}
+.bottomNavNext{flex:1;max-width:420px;margin-left:auto}
+.bottomNavNext button{width:100%;justify-content:center;border-radius:18px;padding:16px 20px;font-size:17px;transition:background .2s,box-shadow .2s}
+.bottomNavNext button.allDone{background:var(--green);box-shadow:0 6px 20px rgba(22,163,74,.35)}
+.bottomNavNext button.allDone:hover{opacity:.93}
+/* 완료 토스트 */
+.completionToast{display:none;align-items:center;gap:10px;background:#ecfdf3;border:1px solid #86efac;border-radius:16px;padding:12px 16px;margin-top:14px;animation:fadeSlide .3s ease}
+.completionToast.show{display:flex}
+.completionToast .toastIcon{font-size:22px;flex-shrink:0}
+.completionToast .toastText{flex:1;font-size:15px;font-weight:700;color:#166534}
+@keyframes fadeSlide{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
 /* ── 행동지표 세부 박스 ── */
 .indBox{background:#f8fafc;border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:10px 0 16px}
 .indBox .indTitle{font-size:13px;font-weight:900;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.03em}
@@ -369,10 +382,25 @@ ul{margin:8px 0 0 18px;padding:0}li{margin:5px 0}
     <button id="btnNext" onclick="goStep(1)" style="padding:10px 16px;font-size:15px">다음 →</button>
   </div>
   <form id="survey"></form>
+
+  <!-- ★ 하단 네비게이션 (문항 바로 아래) -->
+  <div class="bottomNav" id="bottomNav">
+    <button class="ghost" id="btnPrevBottom" onclick="goStep(-1)" style="padding:12px 18px;font-size:15px">← 이전</button>
+    <div class="bottomNavNext">
+      <button id="btnNextBottom" onclick="goStep(1)" style="padding:16px 20px;font-size:17px">다음 →</button>
+    </div>
+  </div>
+  <!-- 완료 토스트 (3문항 모두 체크 시) -->
+  <div class="completionToast" id="completionToast">
+    <span class="toastIcon">✅</span>
+    <span class="toastText" id="completionToastText"></span>
+  </div>
+  <!-- 마지막 역량: 리포트 보기 -->
   <div id="calcActions" class="actions" style="display:none;margin-top:20px">
     <button type="button" onclick="calculate()">✨ 성장 리포트 보기</button>
     <button class="ghost" type="button" onclick="saveProgress(true)">지금 저장</button>
   </div>
+
   <div class="dangerZone">
     <p class="tiny muted">⚠ 아래 버튼은 모든 응답을 삭제합니다.</p>
     <button class="danger" type="button" onclick="resetForm()" style="font-size:14px;padding:10px 14px">처음부터 다시 시작</button>
@@ -652,6 +680,7 @@ function renderSurvey(){
   });
   renderStepDots();
   updateStepNav();
+  hideToast();
 }
 
 function renderStepDots(){
@@ -661,28 +690,67 @@ function renderStepDots(){
 
 function updateStepNav(){
   const prev=document.getElementById('btnPrev'),next=document.getElementById('btnNext'),calc=document.getElementById('calcActions');
+  const prevB=document.getElementById('btnPrevBottom'),nextB=document.getElementById('btnNextBottom'),bottomNav=document.getElementById('bottomNav');
+  const isLast=currentStep===domainKeys.length-1;
+  const nextLabel=isLast?'':`다음 → (${domains[domainKeys[currentStep+1]].emoji} ${domains[domainKeys[currentStep+1]].user})`;
+
+  // 상단 네비
   prev.disabled=currentStep===0;prev.style.opacity=currentStep===0?'.4':'1';
-  if(currentStep===domainKeys.length-1){next.style.display='none';calc.style.display='flex';}
-  else{
-    next.style.display='inline-flex';
-    next.textContent=`다음 → (${domains[domainKeys[currentStep+1]].emoji} ${domains[domainKeys[currentStep+1]].user})`;
-    calc.style.display='none';
+  if(isLast){next.style.display='none';calc.style.display='flex';}
+  else{next.style.display='inline-flex';next.textContent=nextLabel;calc.style.display='none';}
+
+  // 하단 네비
+  prevB.disabled=currentStep===0;prevB.style.opacity=currentStep===0?'.4':'1';
+  if(isLast){
+    bottomNav.style.display='none'; // 마지막엔 하단 nav 숨기고 calcActions만
+  } else {
+    bottomNav.style.display='flex';
+    nextB.textContent=nextLabel;
   }
+
+  // 도메인 진행 텍스트
   const domQs=questions.filter(q=>q[0]===domainKeys[currentStep]);
   const domDone=domQs.filter(q=>document.querySelector(`input[name=${q[1]}]:checked`)).length;
   document.getElementById('domainProgressText').textContent=`${domains[domainKeys[currentStep]].emoji} ${domains[domainKeys[currentStep]].user} ${domDone}/${domQs.length}`;
+
+  // 완료 토스트 & 하단 버튼 강조
+  checkDomainComplete();
 }
 
 function goStep(dir){
   if(dir===1){
-    const missing=questions.filter(q=>q[0]===domainKeys[currentStep]&&!document.querySelector(`input[name=${q[1]}]:checked`));
-    if(missing.length&&!confirm(`이 역량에서 ${missing.length}개 문항을 아직 응답하지 않았습니다.\n그래도 다음으로 넘어갈까요?`))return;
+    const domQs=questions.filter(q=>q[0]===domainKeys[currentStep]);
+    const missing=domQs.filter(q=>!document.querySelector(`input[name=${q[1]}]:checked`));
+    if(missing.length){
+      // confirm 대신 미응답 문항을 시각적으로 강조하고 첫 미응답으로 스크롤
+      missing.forEach(q=>{
+        const el=document.querySelector(`input[name=${q[1]}]`);
+        if(el){
+          const wrap=el.closest('.q');
+          if(wrap){
+            wrap.style.background='#fff7ed';
+            wrap.style.borderRadius='12px';
+            wrap.style.padding='14px';
+            wrap.style.transition='background .4s';
+            setTimeout(()=>{wrap.style.background='';wrap.style.borderRadius='';wrap.style.padding='18px 0';},2500);
+          }
+        }
+      });
+      // 첫 미응답 문항으로 스크롤
+      const firstMissQ=document.querySelector(`input[name=${missing[0][1]}]`);
+      if(firstMissQ) firstMissQ.closest('.q').scrollIntoView({behavior:'smooth',block:'center'});
+      // 토스트에 경고 메시지
+      showToast(`${missing.length}개 문항을 아직 응답하지 않았습니다. 주황색 문항을 확인해 주세요.`,'warn');
+      return;
+    }
   }
   const next=currentStep+dir;
   if(next<0||next>=domainKeys.length)return;
   document.getElementById('step_'+currentStep).classList.remove('active');
   currentStep=next;
   document.getElementById('step_'+currentStep).classList.add('active');
+  // 토스트 초기화
+  hideToast();
   renderStepDots();updateStepNav();
   document.getElementById('diagnosisSection').scrollIntoView({behavior:'smooth',block:'start'});
 }
@@ -696,7 +764,53 @@ function updateProgress(save=true){
   document.getElementById('progressBar').style.width=(done/questions.length*100)+'%';
   updateStepNav();if(save)saveProgress(false);
 }
-function onAnswerChange(){updateProgress(true)}
+function onAnswerChange(){
+  updateProgress(true);
+  checkDomainComplete();
+}
+
+/* 현재 역량 전체 완료 여부 체크 → 토스트 + 하단 버튼 강조 */
+function checkDomainComplete(){
+  const isLast=currentStep===domainKeys.length-1;
+  const domQs=questions.filter(q=>q[0]===domainKeys[currentStep]);
+  const domDone=domQs.filter(q=>document.querySelector(`input[name=${q[1]}]:checked`)).length;
+  const allDone=domDone===domQs.length;
+
+  if(isLast) return; // 마지막 역량은 calcActions가 담당
+
+  const nextB=document.getElementById('btnNextBottom');
+  if(allDone){
+    nextB.classList.add('allDone');
+    const nextDomain=domains[domainKeys[currentStep+1]];
+    showToast(`✓ 이 역량 완료! 다음은 ${nextDomain.emoji} ${nextDomain.user}입니다.`,'done');
+    // 하단 버튼으로 부드럽게 스크롤 유도 (첫 완료 시에만)
+    if(domDone===domQs.length){
+      setTimeout(()=>{
+        nextB.scrollIntoView({behavior:'smooth',block:'nearest'});
+      },400);
+    }
+  } else {
+    nextB.classList.remove('allDone');
+    hideToast();
+  }
+}
+
+function showToast(msg, type){
+  const t=document.getElementById('completionToast');
+  const txt=document.getElementById('completionToastText');
+  txt.textContent=msg;
+  t.style.background=type==='warn'?'#fff7ed':'#ecfdf3';
+  t.style.borderColor=type==='warn'?'#fed7aa':'#86efac';
+  t.querySelector('.toastIcon').textContent=type==='warn'?'⚠️':'✅';
+  txt.style.color=type==='warn'?'#9a3412':'#166534';
+  t.classList.remove('show');
+  void t.offsetWidth; // reflow for animation
+  t.classList.add('show');
+}
+
+function hideToast(){
+  document.getElementById('completionToast').classList.remove('show');
+}
 function setStatus(m){document.getElementById('saveStatus').textContent=m}
 function saveProgress(alertIt){
   const data={answers:getAnswers(),savedAt:new Date().toISOString(),step:currentStep};
@@ -945,7 +1059,9 @@ showHeroResume();
 const savedProgress=load(STORAGE_PROGRESS);
 if(savedProgress&&savedProgress.answers){
   if(savedProgress.step!==undefined)currentStep=savedProgress.step;
-  renderSurvey();applyAnswers(savedProgress.answers);setStatus('이전 응답 불러옴');
+  renderSurvey();applyAnswers(savedProgress.answers);
+  checkDomainComplete();
+  setStatus('이전 응답 불러옴');
 }
 window.addEventListener('load',()=>window.scrollTo(0,0));
 </script>
